@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, CheckCircle, BookOpen, Shield, Target, Sparkles } from 'lucide-react';
+import { Play, Pause, RotateCcw, CheckCircle, BookOpen, Shield } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useTimerLogs } from '../hooks/useDb';
 
