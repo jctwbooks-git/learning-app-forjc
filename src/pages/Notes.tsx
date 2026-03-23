@@ -3,9 +3,11 @@ import { BookOpen, Plus, Filter, CheckCircle2, Circle, AlertTriangle, X, Shield 
 import { cn } from '../utils/cn';
 import { format, differenceInDays } from 'date-fns';
 import { useMistakes } from '../hooks/useDb';
+import { useAuth } from '../contexts/AuthContext';
 
 const Notes: React.FC = () => {
   const { data: mistakes, addMistake, toggleReviewed, isReadOnly, loading } = useMistakes();
+  const { profile } = useAuth();
   const [filter, setFilter] = useState('全部');
   const [isAdding, setIsAdding] = useState(false);
   
@@ -22,7 +24,7 @@ const Notes: React.FC = () => {
     ? mistakes 
     : mistakes.filter(n => n.subject === filter);
 
-  const examDate = new Date('2026-04-10');
+  const examDate = profile?.examDate ? new Date(profile.examDate) : new Date('2026-04-10');
   const daysToExam = differenceInDays(examDate, new Date());
 
   const handleSave = async () => {
