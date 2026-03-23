@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { format, differenceInDays, isSameDay } from 'date-fns';
-import { useHomeworks, useUserStats } from '../hooks/useDb';
+import { useHomeworks, useUserStats, useTimerLogs } from '../hooks/useDb';
 import { useAuth } from '../contexts/AuthContext';
 import { Timestamp } from 'firebase/firestore';
 import { SCHOOL_TIMETABLE, WEEKLY_PRACTICE, EXAM_TIPS } from '../data/timetable';
@@ -29,6 +29,7 @@ const Dashboard: React.FC = () => {
   const { profile } = useAuth();
   const { data: homework, addHomework, toggleHomework, isReadOnly: hwReadOnly, loading: hwLoading } = useHomeworks();
   const { stats, checkIn, isReadOnly: statsReadOnly, loading: statsLoading } = useUserStats();
+  const { logs, loading: logsLoading } = useTimerLogs();
   
   const typedStats = stats as UserStatsData;
   const [isAdding, setIsAdding] = useState(false);
@@ -40,9 +41,19 @@ const Dashboard: React.FC = () => {
   const dayNameEn = format(today, 'eee'); // Mon, Tue...
   const isWeekend = dayNameEn === 'Sat' || dayNameEn === 'Sun';
   
-  // Use profile's exam date if available, otherwise fallback
-  const examDate = profile?.examDate ? new Date(profile.examDate) : new Date('2026-04-10');
-  const daysToExam = differenceInDays(examDate, today);
+  // Smart Exam Date Logic
+  const midtermDate = profile?.midtermDate ? new Date(profile.midtermDate) : null;
+  const finalDate = profile?.finalDate ? new Date(profile.finalDate) : null;
+  
+  let targetExamDate = finalDate || new Date('2026-06-25');
+  let examName = '期末考';
+
+  if (midtermDate && midtermDate >= today) {
+    targetExamDate = midtermDate;
+    examName = '期中考';
+  }
+
+  const daysToExam = differenceInDays(targetExamDate, today);
 
   const handleAdd = async () => {
     if (!inputValue.trim() || isReadOnly) return;
@@ -56,13 +67,15 @@ const Dashboard: React.FC = () => {
   // Get active exam tip
   const activeTip = EXAM_TIPS.slice().reverse().find(tip => daysToExam <= tip.days);
 
-  if (hwLoading || statsLoading) {
+  if (hwLoading || statsLoading || logsLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
       </div>
     );
   }
+
+  const todayLogs = logs.filter(log => log.timestamp && isSameDay(log.timestamp.toDate(), today));
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
@@ -138,7 +151,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div>
             <p className="text-4xl font-black text-primary">{Math.max(0, daysToExam)}</p>
-            <p className="text-[10px] font-bold text-[var(--muted-foreground)]">第一次段考倒數</p>
+            <p className="text-[10px] font-bold text-[var(--muted-foreground)]">{examName}倒數</p>
           </div>
           <div className="w-full h-1.5 bg-[var(--secondary)] rounded-full overflow-hidden">
             <div 
@@ -148,6 +161,26 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Parent Only: Today's Practiced Subjects */}
+      {isReadOnly && todayLogs.length > 0 && (
+        <section className="bg-green-500/5 border border-green-500/10 p-5 rounded-[32px] space-y-3">
+          <div className="flex items-center gap-2 text-green-600">
+            <CheckCircle2 size={18} />
+            <h3 className="font-black text-sm">今日已練習科目</h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {Array.from(new Set(todayLogs.map(l => l.subject))).map(sub => (
+              <span key={sub} className="px-3 py-1 bg-green-500 text-white rounded-full text-[10px] font-black">
+                {sub}
+              </span>
+            ))}
+          </div>
+          <p className="text-[10px] font-bold text-green-600/60 pl-1">
+            孩子今天已完成 {todayLogs.length} 次自主練習
+          </p>
+        </section>
+      )}
 
       {/* Practice Focus Section */}
       <section className="bg-indigo-500/5 border border-indigo-500/10 p-6 rounded-[32px] space-y-4">

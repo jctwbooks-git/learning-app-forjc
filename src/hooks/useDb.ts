@@ -8,10 +8,12 @@ import {
   doc, 
   Timestamp,
   orderBy,
-  setDoc
+  setDoc,
+  limit
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { differenceInDays } from 'date-fns';
 
 // Helper to get effective UID and check permissions
 const useDbUtils = () => {
@@ -138,14 +140,89 @@ export const useUserStats = () => {
 
   const checkIn = async () => {
     if (!effectiveUid || isReadOnly) return;
-    const newStreak = (stats.streak || 0) + 1;
+    
+    const today = new Date();
+    const dateKey = today.toISOString().slice(0, 10); // YYYY-MM-DD
+    
+    // Check for streak reset
+    let newStreak = (stats.streak || 0) + 1;
+    if (stats.lastCheckIn) {
+      const lastDate = (stats.lastCheckIn as Timestamp).toDate();
+      const diffDays = differenceInDays(today, lastDate);
+      
+      if (diffDays > 1) {
+        // More than a day missed, reset to 1
+        newStreak = 1;
+      } else if (diffDays === 0) {
+        // Already checked in today, do nothing to prevent double counting
+        return;
+      }
+    }
+
+    // Update streak stats
     await setDoc(doc(db, 'users', effectiveUid, 'stats', 'learning'), {
       streak: newStreak,
       lastCheckIn: Timestamp.now()
     }, { merge: true });
+
+    // Write daily attendance record
+    await setDoc(doc(db, 'users', effectiveUid, 'attendance', dateKey), {
+      checkedIn: true,
+      checkInTime: Timestamp.now()
+    });
   };
 
   return { stats, loading, checkIn, isReadOnly };
+};
+
+export const useCheckInHistory = () => {
+  const { effectiveUid } = useDbUtils();
+  const [checkedInDates, setCheckedInDates] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!effectiveUid) return;
+
+    const q = query(collection(db, 'users', effectiveUid, 'attendance'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const dates = new Set(snapshot.docs.map(d => d.id)); // doc ID is YYYY-MM-DD
+      setCheckedInDates(dates);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [effectiveUid]);
+
+  return { checkedInDates, loading };
+};
+
+export const useDetailedCheckInHistory = () => {
+  const { effectiveUid } = useDbUtils();
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!effectiveUid) return;
+
+    const q = query(
+      collection(db, 'users', effectiveUid, 'attendance'),
+      orderBy('checkInTime', 'desc'),
+      limit(7)
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setHistory(items);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [effectiveUid]);
+
+  return { history, loading };
 };
 
 export const useTimerLogs = () => {

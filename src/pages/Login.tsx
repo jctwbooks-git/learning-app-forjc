@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LogIn, GraduationCap, ShieldCheck, Zap } from 'lucide-react';
 
 const Login: React.FC = () => {
-  const { signInWithGoogle, testLogin } = useAuth();
+  const { signInWithGoogle } = useAuth();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)] p-6">
@@ -55,24 +55,6 @@ const Login: React.FC = () => {
         <p className="text-[10px] text-[var(--muted-foreground)] font-bold uppercase tracking-widest">
           寶山國中學習輔助系統 v1.0
         </p>
-      </div>
-      {/* Temporary Test Buttons for Verification - 驗證完成後移除 */}
-      <div className="mt-6 pt-6 border-t border-[var(--border)] space-y-3 w-full max-w-md">
-        <p className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">測試模式（驗證專用）</p>
-        <div className="grid grid-cols-2 gap-3">
-          <button 
-            onClick={() => testLogin('student')}
-            className="py-3 bg-primary/10 text-primary border border-primary/20 rounded-2xl text-[10px] font-black hover:bg-primary/20 transition-colors"
-          >
-            測試登入（學生）
-          </button>
-          <button 
-            onClick={() => testLogin('parent')}
-            className="py-3 bg-orange-500/10 text-orange-600 border border-orange-500/20 rounded-2xl text-[10px] font-black hover:bg-orange-500/20 transition-colors"
-          >
-            測試登入（家長）
-          </button>
-        </div>
       </div>
     </div>
   );

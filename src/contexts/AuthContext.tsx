@@ -13,7 +13,8 @@ interface UserProfile {
   childId?: string;
   displayName: string;
   photoURL: string;
-  examDate?: string; // ISO string format
+  midtermDate?: string; // ISO string format
+  finalDate?: string; // ISO string format
 }
 
 interface AuthContextType {
@@ -23,7 +24,6 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
-  testLogin: (role: 'student' | 'parent') => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -97,27 +97,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await setDoc(userDocRef, data, { merge: true });
   };
 
-  const testLogin = (role: 'student' | 'parent') => {
-    const mockUser = {
-      uid: role === 'student' ? 'test-student-id' : 'test-parent-id',
-      displayName: role === 'student' ? '測試同學' : '測試家長',
-      email: `${role}@test.com`,
-      photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=${role}`,
-    } as User;
-    
-    setUser(mockUser);
-    setProfile({
-      role,
-      displayName: mockUser.displayName!,
-      photoURL: mockUser.photoURL!,
-      childId: role === 'parent' ? 'test-student-id' : undefined,
-      examDate: '2026-04-10'
-    });
-    setLoading(false);
-  };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signInWithGoogle, logout, updateProfile, testLogin }}>
+    <AuthContext.Provider value={{ user, profile, loading, signInWithGoogle, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -24,8 +24,16 @@ const Notes: React.FC = () => {
     ? mistakes 
     : mistakes.filter(n => n.subject === filter);
 
-  const examDate = profile?.examDate ? new Date(profile.examDate) : new Date('2026-04-10');
-  const daysToExam = differenceInDays(examDate, new Date());
+  const today = new Date();
+  const midtermDate = profile?.midtermDate ? new Date(profile.midtermDate) : null;
+  const finalDate = profile?.finalDate ? new Date(profile.finalDate) : null;
+  
+  let targetDate = finalDate || new Date('2026-06-25');
+  if (midtermDate && midtermDate >= today) {
+    targetDate = midtermDate;
+  }
+  
+  const daysToExam = differenceInDays(targetDate, today);
 
   const handleSave = async () => {
     if (!newMistake.unit || !newMistake.reason || isReadOnly) return;

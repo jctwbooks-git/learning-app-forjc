@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, CheckCircle, BookOpen, Shield } from 'lucide-react';
+import { Play, Pause, RotateCcw, CheckCircle, BookOpen, Shield, Bell, BellOff } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useTimerLogs } from '../hooks/useDb';
 
@@ -12,6 +12,40 @@ const Timer: React.FC = () => {
   const FOCUS_TIME = 30 * 60;
   const ANALYZE_TIME = 15 * 60;
 
+  const playSound = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.1);
+      gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.5);
+    } catch (e) {
+      console.error('Audio failed', e);
+    }
+  };
+
+  const sendNotification = (title: string, body: string) => {
+    if (!("Notification" in window)) return;
+    
+    if (Notification.permission === "granted") {
+      new Notification(title, {
+        body,
+        icon: '/favicon.ico', // Adjust icon path if needed
+        silent: false,
+      });
+    }
+  };
+
   useEffect(() => {
     let interval: any;
     if ((status === 'focusing' || status === 'analyzing') && timeLeft > 0) {
@@ -19,10 +53,13 @@ const Timer: React.FC = () => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
     } else if (timeLeft === 0) {
+      playSound();
       if (status === 'focusing') {
+        sendNotification('第一階段結束！', `[${selectedSubject}] 30 分鐘專注結束。現在開始 15 分鐘對答解析。`);
         setStatus('analyzing');
         setTimeLeft(ANALYZE_TIME);
       } else if (status === 'analyzing') {
+        sendNotification('練習完成！', `[${selectedSubject}] 15 分鐘解析結束。太棒了，完成一場練習！`);
         setStatus('completed');
         saveLog();
       }
@@ -39,8 +76,14 @@ const Timer: React.FC = () => {
     });
   };
 
-  const startTimer = () => {
+  const startTimer = async () => {
     if (isReadOnly) return;
+    
+    // Request notification permission if not yet decided
+    if ("Notification" in window && Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+    
     setStatus('focusing');
   };
   
@@ -78,6 +121,29 @@ const Timer: React.FC = () => {
         <div className="bg-orange-500/10 border border-orange-500/20 p-3 rounded-2xl flex items-center justify-center gap-2 text-orange-600 font-bold text-xs">
           <Shield size={16} />
           觀看模式：計時功能僅供學生使用
+        </div>
+      )}
+
+      {/* Notification Status (Desktop/PWA only) */}
+      {!isReadOnly && "Notification" in window && (
+        <div className={cn(
+          "p-3 rounded-2xl flex items-center justify-between gap-3 text-xs font-bold transition-all",
+          Notification.permission === 'granted' 
+            ? "bg-green-500/5 text-green-600 border border-green-500/10" 
+            : "bg-blue-500/5 text-blue-600 border border-blue-500/10"
+        )}>
+          <div className="flex items-center gap-2">
+            {Notification.permission === 'granted' ? <Bell size={16} /> : <BellOff size={16} />}
+            <span>{Notification.permission === 'granted' ? '瀏覽器通知：已開啟' : '建議開啟通知以防漏掉計時'}</span>
+          </div>
+          {Notification.permission === 'default' && (
+            <button 
+              onClick={() => Notification.requestPermission()}
+              className="px-3 py-1 bg-blue-500 text-white rounded-lg active:scale-95 transition-all"
+            >
+              開啟
+            </button>
+          )}
         </div>
       )}
 

@@ -148,20 +148,35 @@ const Settings: React.FC = () => {
             </div>
 
             {/* Exam Date Setting */}
-            <div className="pt-4 border-t border-primary/10 space-y-3">
+            <div className="pt-4 border-t border-primary/10 space-y-4">
                <h3 className="font-black flex items-center gap-2 text-sm text-primary">
                 <Calendar size={18} />
-                下次段考日期
+                重要考試日程
               </h3>
               <p className="text-[10px] font-bold text-[var(--muted-foreground)] translate-y-[-4px]">
-                設定後 Dashboard 倒數與提示將自動同步。
+                設定後 Dashboard 將自動切換倒數目前的考試。
               </p>
-              <input 
-                type="date"
-                value={profile.examDate || '2026-04-10'}
-                onChange={(e) => updateProfile({ examDate: e.target.value })}
-                className="w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl px-5 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
+              
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-primary/60 ml-1 uppercase">期中考日期</label>
+                  <input 
+                    type="date"
+                    value={profile.midtermDate || ''}
+                    onChange={(e) => updateProfile({ midtermDate: e.target.value })}
+                    className="w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl px-5 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-primary/60 ml-1 uppercase">期末考日期</label>
+                  <input 
+                    type="date"
+                    value={profile.finalDate || ''}
+                    onChange={(e) => updateProfile({ finalDate: e.target.value })}
+                    className="w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl px-5 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+              </div>
             </div>
           </section>
         ) : (
