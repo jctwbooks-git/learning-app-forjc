@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, CheckCircle, BookOpen, AlertCircle, Shield } from 'lucide-react';
+import { Play, Pause, RotateCcw, CheckCircle, BookOpen, Shield, Target, Sparkles } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useTimerLogs } from '../hooks/useDb';
 
@@ -22,7 +22,6 @@ const Timer: React.FC = () => {
       if (status === 'focusing') {
         setStatus('analyzing');
         setTimeLeft(ANALYZE_TIME);
-        alert('專注時段結束！進入 15 分鐘解析時段。');
       } else if (status === 'analyzing') {
         setStatus('completed');
         saveLog();
@@ -64,7 +63,7 @@ const Timer: React.FC = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const subjects = ['數學', '英語', '國文', '自然', '社會', '地理', '歷史'];
+  const subjects = ['國文', '數學', '英語', '自然', '社會', '地理', '歷史', '公民', '健康', '客語', '生科', '資科'];
 
   const progress = status === 'focusing' 
     ? (1 - timeLeft / FOCUS_TIME) * 100 
@@ -73,7 +72,7 @@ const Timer: React.FC = () => {
       : 0;
 
   return (
-    <div className="max-w-md mx-auto space-y-8 py-4 pb-16">
+    <div className="max-w-md mx-auto space-y-8 py-4 pb-16 animate-in fade-in duration-500">
       {/* Role Banner */}
        {isReadOnly && (
         <div className="bg-orange-500/10 border border-orange-500/20 p-3 rounded-2xl flex items-center justify-center gap-2 text-orange-600 font-bold text-xs">
@@ -83,19 +82,19 @@ const Timer: React.FC = () => {
       )}
 
       {/* Subject Selection (Only in idle) */}
-      <div className={cn("space-y-4 transition-all pb-16", (status !== 'idle' || isReadOnly) && "opacity-50 pointer-events-none")}>
+      <div className={cn("space-y-4 transition-all", (status !== 'idle' || isReadOnly) && "opacity-50 pointer-events-none")}>
         <h2 className="text-xl font-black flex items-center gap-2">
           <BookOpen className="text-primary" size={24} />
           選擇練習科目
         </h2>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {subjects.map((s) => (
             <button
               key={s}
               disabled={isReadOnly}
               onClick={() => setSelectedSubject(s)}
               className={cn(
-                "py-3 rounded-2xl font-bold text-sm border transition-all active:scale-95",
+                "py-2.5 rounded-xl font-black text-xs border transition-all active:scale-95",
                 selectedSubject === s 
                   ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20" 
                   : "bg-[var(--card)] border-[var(--border)] text-[var(--muted-foreground)] hover:border-primary/50"
@@ -108,7 +107,7 @@ const Timer: React.FC = () => {
       </div>
 
       {/* Main Timer Display */}
-      <div className="relative flex flex-col items-center justify-center py-10">
+      <div className="relative flex flex-col items-center justify-center py-6">
         <div className="w-64 h-64 sm:w-80 sm:h-80 relative flex items-center justify-center">
           <svg className="w-full h-full -rotate-90 drop-shadow-xl">
             <circle 
@@ -133,12 +132,12 @@ const Timer: React.FC = () => {
               "text-[10px] font-black uppercase tracking-widest mb-1",
               status === 'focusing' ? "text-primary" : "text-blue-500"
             )}>
-              {status === 'focusing' ? '專注倒數中' : status === 'analyzing' ? '解析檢討中' : status === 'completed' ? '練習完成' : '準備開始'}
+              {status === 'focusing' ? '第一階段：專注解題' : status === 'analyzing' ? '第二階段：對答解析' : status === 'completed' ? '練習完成' : '準備開始'}
             </p>
             <span className="text-6xl sm:text-7xl font-black tabular-nums tracking-tighter">
               {status === 'completed' ? 'Done' : formatTime(timeLeft)}
             </span>
-            <p className="text-xs font-bold text-[var(--muted-foreground)] mt-2">
+            <p className="text-xs font-bold text-[var(--muted-foreground)] mt-1">
               目前科目：{selectedSubject}
             </p>
           </div>
@@ -192,12 +191,38 @@ const Timer: React.FC = () => {
         )}
       </div>
 
-      {/* Tips Section */}
-      <div className="p-5 rounded-3xl bg-[var(--secondary)] border border-[var(--border)] border-dashed flex items-start gap-4">
-        <AlertCircle className="text-primary shrink-0" size={20} />
-        <div className="space-y-1">
-          <h3 className="text-sm font-black">什麼是 30+15？</h3>
-          <p className="text-xs font-medium text-[var(--muted-foreground)]">先用 30 分鐘專注解題（不翻解答），再用 15 分鐘認真看詳解與檢討。這是提高學習效率的最佳節奏！</p>
+      {/* 30+15 Strategy Guide (from Spec) */}
+      <div className="grid gap-4">
+        <div className={cn(
+          "p-5 rounded-[32px] border transition-all",
+          status === 'focusing' ? "bg-primary/10 border-primary" : "bg-[var(--secondary)] border-[var(--border)]"
+        )}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className={cn(
+              "text-[10px] font-black px-2 py-0.5 rounded-full",
+              status === 'focusing' ? "bg-primary text-white" : "bg-gray-200 text-gray-500"
+            )}>第一階段 30 min</span>
+            <h3 className="text-sm font-black">專心寫講義題目</h3>
+          </div>
+          <p className="text-xs font-bold text-[var(--muted-foreground)] leading-relaxed pl-1">
+            專注解題，這段時間請不要翻看後面答案解析。
+          </p>
+        </div>
+
+        <div className={cn(
+          "p-5 rounded-[32px] border transition-all",
+          status === 'analyzing' ? "bg-blue-500/10 border-blue-500" : "bg-[var(--secondary)] border-[var(--border)]"
+        )}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className={cn(
+              "text-[10px] font-black px-2 py-0.5 rounded-full",
+              status === 'analyzing' ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"
+            )}>第二階段 15 min</span>
+            <h3 className="text-sm font-black">對答案、讀解析</h3>
+          </div>
+          <p className="text-xs font-bold text-[var(--muted-foreground)] leading-relaxed pl-1">
+            閱讀解析，弄懂為什麼錯。看懂一題錯誤因原，比多寫 10 題更有效！
+          </p>
         </div>
       </div>
     </div>

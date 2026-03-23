@@ -8,13 +8,17 @@ import {
   BookOpen,
   AlertCircle,
   X,
-  Shield
+  Shield,
+  Clock,
+  Sparkles,
+  Target
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { format, differenceInDays, isSameDay } from 'date-fns';
 import { useHomeworks, useUserStats } from '../hooks/useDb';
 import { useAuth } from '../contexts/AuthContext';
 import { Timestamp } from 'firebase/firestore';
+import { SCHOOL_TIMETABLE, WEEKLY_PRACTICE, EXAM_TIPS } from '../data/timetable';
 
 interface UserStatsData {
   streak: number;
@@ -32,6 +36,14 @@ const Dashboard: React.FC = () => {
 
   const isReadOnly = hwReadOnly || statsReadOnly;
 
+  const today = new Date();
+  const dayNameEn = format(today, 'eee'); // Mon, Tue...
+  const isWeekend = dayNameEn === 'Sat' || dayNameEn === 'Sun';
+  
+  // Use profile's exam date if available, otherwise fallback
+  const examDate = profile?.examDate ? new Date(profile.examDate) : new Date('2026-04-10');
+  const daysToExam = differenceInDays(examDate, today);
+
   const handleAdd = async () => {
     if (!inputValue.trim() || isReadOnly) return;
     await addHomework(inputValue.trim());
@@ -39,11 +51,10 @@ const Dashboard: React.FC = () => {
     setIsAdding(false);
   };
 
-  const today = new Date();
-  const examDate = new Date('2026-04-10');
-  const daysToExam = differenceInDays(examDate, today);
-
   const isCheckInDisabled = isReadOnly || (typedStats?.lastCheckIn && isSameDay(typedStats.lastCheckIn.toDate(), today));
+
+  // Get active exam tip
+  const activeTip = EXAM_TIPS.slice().reverse().find(tip => daysToExam <= tip.days);
 
   if (hwLoading || statsLoading) {
     return (
@@ -54,7 +65,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       {/* Role Banner */}
       {isReadOnly && (
         <div className="bg-orange-500/10 border border-orange-500/20 p-3 rounded-2xl flex items-center justify-center gap-2 text-orange-600 font-bold text-xs">
@@ -63,11 +74,21 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Exam Tip */}
+      {activeTip && (
+        <div className="bg-primary/10 border border-primary/20 p-4 rounded-[24px] flex items-start gap-3 animate-pulse">
+          <Sparkles className="text-primary shrink-0 mt-0.5" size={18} />
+          <p className="text-sm font-black text-primary leading-tight">
+            {activeTip.message}
+          </p>
+        </div>
+      )}
+
       {/* Header Section */}
-      <section className="flex items-end justify-between">
+      <section className="flex items-end justify-between px-1">
         <div className="space-y-1">
-          <p className="text-xs font-black text-[var(--muted-foreground)] uppercase tracking-widest">
-            {format(today, 'yyyy年 M月 d日')}
+          <p className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-[0.2em]">
+            {format(today, 'yyyy / MM / dd')}
           </p>
           <h2 className="text-3xl font-black tracking-tighter">
             {isReadOnly ? '孩子目前進度' : `嗨, ${profile?.displayName || '同學'}!`}
@@ -128,6 +149,61 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Practice Focus Section */}
+      <section className="bg-indigo-500/5 border border-indigo-500/10 p-6 rounded-[32px] space-y-4">
+        <div className="flex items-center gap-2">
+          <Target className="text-indigo-500" size={20} />
+          <h3 className="font-black text-lg text-indigo-900 dark:text-indigo-100">今晚自主練習建議</h3>
+        </div>
+        {WEEKLY_PRACTICE[dayNameEn] ? (
+          <div className="space-y-3">
+            <div className="bg-white/50 dark:bg-black/20 p-4 rounded-2xl border border-indigo-500/10">
+              <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">練習科目</p>
+              <p className="text-md font-black">{WEEKLY_PRACTICE[dayNameEn].focus}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white/50 dark:bg-black/20 p-3 rounded-2xl border border-indigo-500/10">
+                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">策略</p>
+                <p className="text-xs font-bold leading-tight">{WEEKLY_PRACTICE[dayNameEn].methods}</p>
+              </div>
+              <div className="bg-white/50 dark:bg-black/20 p-3 rounded-2xl border border-indigo-500/10">
+                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">講義</p>
+                <p className="text-xs font-bold leading-tight">{WEEKLY_PRACTICE[dayNameEn].materials}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm font-bold opacity-60 italic px-2">週末休息時間，預習或放鬆一下吧！</p>
+        )}
+      </section>
+
+      {/* School Timetable Section (Only Weekdays) */}
+      {!isWeekend && (
+        <section className="space-y-4 px-1">
+          <div className="flex items-center justify-between">
+            <h3 className="font-black text-lg flex items-center gap-2">
+              <Clock size={20} className="text-primary" />
+              今日學校課表
+            </h3>
+            <span className="text-[10px] font-bold text-[var(--muted-foreground)]">七年級下學期</span>
+          </div>
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-[32px] overflow-hidden shadow-sm">
+            <div className="flex bg-[var(--secondary)] py-2 px-6 border-b border-[var(--border)]">
+              <div className="w-16 text-[10px] font-black text-[var(--muted-foreground)]">節次</div>
+              <div className="w-20 text-[10px] font-black text-[var(--muted-foreground)]">時間</div>
+              <div className="flex-1 text-[10px] font-black text-[var(--muted-foreground)]">科目</div>
+            </div>
+            {SCHOOL_TIMETABLE.map((p, idx) => (
+              <div key={idx} className="flex items-center py-3 px-6 border-b border-[var(--border)] last:border-0 hover:bg-primary/5 transition-colors">
+                <div className="w-16 text-xs font-black">{p.period}</div>
+                <div className="w-20 text-[10px] font-bold text-[var(--muted-foreground)]">{p.time}</div>
+                <div className="flex-1 text-sm font-black">{p.subjects[dayNameEn as keyof typeof p.subjects]}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Homework Section */}
       <section className="space-y-4">
         <div className="flex items-center justify-between px-1">
@@ -139,7 +215,7 @@ const Dashboard: React.FC = () => {
             </span>
           </h3>
           <button className="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
-            查看全部 <ChevronRight size={14} />
+            全部 <ChevronRight size={14} />
           </button>
         </div>
 
@@ -164,15 +240,15 @@ const Dashboard: React.FC = () => {
                 )}
               >
                 <div className={cn(
-                  "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
+                  "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shadow-inner",
                   item.completed ? "bg-green-500 border-green-500 text-white" : "border-[var(--border)] group-hover:border-primary"
                 )}>
                   {item.completed && <CheckCircle2 size={14} />}
                 </div>
                 <div className="flex-1">
-                  <p className={cn("text-sm font-bold", item.completed && "line-through")}>{item.title}</p>
+                  <p className={cn("text-sm font-bold", item.completed && "line-through opacity-50")}>{item.title}</p>
                 </div>
-                {!isReadOnly && <ChevronRight size={16} className="text-[var(--border)]" />}
+                {!isReadOnly && <ChevronRight size={16} className="text-[var(--border)] opacity-0 group-hover:opacity-100 transition-opacity" />}
               </div>
             ))
           )}

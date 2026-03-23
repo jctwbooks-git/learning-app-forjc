@@ -7,7 +7,8 @@ import {
   Copy, 
   Check, 
   Smartphone,
-  Info
+  Info,
+  Calendar
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
@@ -144,6 +145,23 @@ const Settings: React.FC = () => {
               >
                 {copied ? <Check size={16} /> : <Copy size={16} />}
               </button>
+            </div>
+
+            {/* Exam Date Setting */}
+            <div className="pt-4 border-t border-primary/10 space-y-3">
+               <h3 className="font-black flex items-center gap-2 text-sm text-primary">
+                <Calendar size={18} />
+                下次段考日期
+              </h3>
+              <p className="text-[10px] font-bold text-[var(--muted-foreground)] translate-y-[-4px]">
+                設定後 Dashboard 倒數與提示將自動同步。
+              </p>
+              <input 
+                type="date"
+                value={profile.examDate || '2026-04-10'}
+                onChange={(e) => updateProfile({ examDate: e.target.value })}
+                className="w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl px-5 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
             </div>
           </section>
         ) : (
